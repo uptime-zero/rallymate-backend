@@ -1,4 +1,4 @@
-package com.rallymate.user.domain;
+package com.rallymate.user.entity;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -44,6 +44,10 @@ public class User {
     @Column(nullable = false)
     private double mannerScore = 36.5;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private UserRole role;
+
     @Builder(access = AccessLevel.PRIVATE)
     private User(
             String phoneNumber,
@@ -52,7 +56,8 @@ public class User {
             Gender gender,
             String profileUrl,
             String preferredSport,
-            String activityArea
+            String activityArea,
+            UserRole role
     ) {
         this.phoneNumber = phoneNumber;
         this.phoneNumberHash = phoneNumberHash;
@@ -61,6 +66,7 @@ public class User {
         this.profileUrl = profileUrl;
         this.preferredSport = preferredSport;
         this.activityArea = activityArea;
+        this.role = role;
     }
 
     public static User of(
@@ -70,7 +76,8 @@ public class User {
             Gender gender,
             String profileUrl,
             String preferredSport,
-            String activityArea
+            String activityArea,
+            UserRole role
     ) {
         return User.builder()
                 .phoneNumber(phoneNumber)
@@ -80,6 +87,7 @@ public class User {
                 .profileUrl(profileUrl)
                 .preferredSport(preferredSport)
                 .activityArea(activityArea)
+                .role(role)
                 .build();
     }
 }

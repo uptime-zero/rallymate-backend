@@ -1,4 +1,4 @@
-package com.rallymate.user.domain;
+package com.rallymate.user.entity;
 
 public enum Gender {
     MALE, FEMALE
