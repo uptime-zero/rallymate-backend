@@ -33,8 +33,9 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<Void>> handleValidation(MethodArgumentNotValidException e) {
         String msg = e.getBindingResult().getFieldErrors().stream()
-                .map(FieldError::getDefaultMessage)  // 어노테이션에 직접 작성한 메시지 사용
-                .collect(Collectors.joining(", "));
+                .map(FieldError::getDefaultMessage)
+                .findFirst()
+                .orElse(ErrorCode.VALIDATION_FAILED.getMessage());
         log.warn("Validation failed: {}", msg);
         return ResponseEntity
                 .badRequest()
@@ -46,7 +47,8 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleConstraintViolation(ConstraintViolationException e) {
         String msg = e.getConstraintViolations().stream()
                 .map(ConstraintViolation::getMessage)
-                .collect(Collectors.joining(", "));
+                .findFirst()
+                .orElse(ErrorCode.VALIDATION_FAILED.getMessage());
         log.warn("ConstraintViolation: {}", msg);
         return ResponseEntity
                 .badRequest()
