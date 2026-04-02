@@ -3,7 +3,8 @@ package com.rallymate.auth.service;
 import com.rallymate.auth.dto.TokenResponse;
 import com.rallymate.auth.entity.RefreshToken;
 import com.rallymate.auth.repository.RefreshTokenRepository;
-import com.rallymate.global.exception.ErrorCode;
+import com.rallymate.global.exception.NotFoundException;
+import com.rallymate.global.exception.UnauthorizedException;
 import com.rallymate.global.jwt.JwtProvider;
 import com.rallymate.user.entity.User;
 import com.rallymate.user.repository.UserRepository;
@@ -12,6 +13,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+
+import static com.rallymate.global.exception.ErrorCode.*;
 
 @Service
 @RequiredArgsConstructor
@@ -31,27 +34,27 @@ public class AuthService {
     public TokenResponse reissueTokens(String refreshToken) {
         // 1. Refresh Token 유효성 검증
         if (!jwtProvider.validateRefreshToken(refreshToken)) {
-            throw new RuntimeException(ErrorCode.INVALID_REFRESH_TOKEN.getMessage());
+            throw new UnauthorizedException(INVALID_REFRESH_TOKEN, INVALID_REFRESH_TOKEN.getMessage());
         }
 
         // 2. DB에서 Refresh Token 조회
         RefreshToken storedToken = refreshTokenRepository.findByToken(refreshToken)
-                .orElseThrow(() -> new RuntimeException(ErrorCode.REFRESH_TOKEN_NOT_FOUND.getMessage()));
+                .orElseThrow(() -> new UnauthorizedException(REFRESH_TOKEN_NOT_FOUND, REFRESH_TOKEN_NOT_FOUND.getMessage()));
 
         // 3. Revoked 여부 확인
         if (storedToken.isRevoked()) {
-            throw new RuntimeException(ErrorCode.INVALID_REFRESH_TOKEN.getMessage());
+            throw new UnauthorizedException(INVALID_REFRESH_TOKEN, INVALID_REFRESH_TOKEN.getMessage());
         }
 
         // 4. 만료 여부 확인
         if (storedToken.getExpiredAt().isBefore(LocalDateTime.now())) {
-            throw new RuntimeException(ErrorCode.EXPIRED_TOKEN.getMessage());
+            throw new UnauthorizedException(EXPIRED_TOKEN, EXPIRED_TOKEN.getMessage());
         }
 
         // 5. UID 추출 및 사용자 조회
         String uid = jwtProvider.extractSubject(refreshToken);
         User user = userRepository.findByUid(uid)
-                .orElseThrow(() -> new RuntimeException(ErrorCode.USER_NOT_FOUND.getMessage()));
+                .orElseThrow(() -> new NotFoundException(USER_NOT_FOUND, USER_NOT_FOUND.getMessage()));
 
         // 6. 기존 Refresh Token revoke 처리
         storedToken.revoke();
@@ -85,7 +88,7 @@ public class AuthService {
     public TokenResponse issueTokens(String uid) {
         // 1. 사용자 조회
         User user = userRepository.findByUid(uid)
-                .orElseThrow(() -> new RuntimeException(ErrorCode.USER_NOT_FOUND.getMessage()));
+                .orElseThrow(() -> new NotFoundException(USER_NOT_FOUND, USER_NOT_FOUND.getMessage()));
 
         // 2. 기존 Refresh Token 삭제 (재로그인 시)
         refreshTokenRepository.deleteByUid(uid);

@@ -1,14 +1,11 @@
 package com.rallymate.global.exception;
 
-import lombok.Getter;
-
-@Getter
-public class BadRequestException extends RuntimeException {
-
-    private final ErrorCode errorCode;
-
+public class BadRequestException extends BaseException {
     public BadRequestException(ErrorCode errorCode) {
-        super(errorCode.getMessage());
-        this.errorCode = errorCode;
+        super(errorCode);
+    }
+
+    public BadRequestException(ErrorCode errorCode, String message) {
+        super(errorCode, message);
     }
 }
