@@ -1,7 +1,6 @@
 package com.rallymate.global.handler;
 
-import com.rallymate.global.exception.BadRequestException;
-import com.rallymate.global.exception.ErrorCode;
+import com.rallymate.global.exception.*;
 import com.rallymate.global.response.ApiResponse;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
@@ -13,17 +12,20 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import java.util.stream.Collectors;
-
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    // 비즈니스 예외
-    @ExceptionHandler(BadRequestException.class)
-    public ResponseEntity<ApiResponse<Void>> handleBadRequest(BadRequestException e) {
-        log.warn("BadRequest: code={}, msg={}", e.getErrorCode().getCode(), e.getMessage());
+    // 커스텀 예외 공통 처리 (부모로 한 번에 처리)
+    @ExceptionHandler(BaseException.class)
+    public ResponseEntity<ApiResponse<Void>> handleBaseException(BaseException e) {
         ErrorCode errorCode = e.getErrorCode();
+        // 5xx는 ERROR, 4xx는 WARN으로 레벨 구분
+        if (errorCode.getStatus().is5xxServerError()) {
+            log.error("ServerError: code={}, msg={}", errorCode.getCode(), errorCode.getMessage());
+        } else {
+            log.warn("ClientError: code={}, msg={}", errorCode.getCode(), errorCode.getMessage());
+        }
         return ResponseEntity
                 .status(errorCode.getStatus())
                 .body(ApiResponse.fail(errorCode));
@@ -55,7 +57,7 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.fail(ErrorCode.VALIDATION_FAILED, msg));
     }
 
-    // 시스템 예외
+    // 모든 예외 최종 핸들러 (처리되지 않은 예외)
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleException(Exception e) {
         log.error("Unhandled exception", e);

@@ -79,8 +79,6 @@ public class JwtProvider {
             return exp.after(new Date());
         } catch (ExpiredJwtException e) {
             return false;
-        } catch (Exception e) {
-            return false;
         }
     }
 
