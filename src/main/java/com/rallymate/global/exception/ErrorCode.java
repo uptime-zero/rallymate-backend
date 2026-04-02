@@ -12,6 +12,11 @@ public enum ErrorCode {
     INVALID_SMS_CODE(1001, HttpStatus.BAD_REQUEST, "유효하지 않은 인증 코드입니다."),
     EXPIRED_SMS_CODE(1002, HttpStatus.BAD_REQUEST, "만료된 인증 코드입니다."),
     UNAUTHORIZED(1003, HttpStatus.UNAUTHORIZED, "인증이 필요합니다."),
+    INVALID_TOKEN(1004, HttpStatus.UNAUTHORIZED, "유효하지 않은 토큰입니다."),
+    EXPIRED_TOKEN(1005, HttpStatus.UNAUTHORIZED, "만료된 토큰입니다."),
+    TOKEN_NOT_FOUND(1006, HttpStatus.UNAUTHORIZED, "토큰이 없습니다."),
+    REFRESH_TOKEN_NOT_FOUND(1007, HttpStatus.UNAUTHORIZED, "리프레시 토큰을 찾을 수 없습니다."),
+    INVALID_REFRESH_TOKEN(1008, HttpStatus.UNAUTHORIZED, "유효하지 않은 리프레시 토큰입니다."),
 
     // User (2xxx)
     USER_NOT_FOUND(2001, HttpStatus.NOT_FOUND, "유저를 찾을 수 없습니다."),

@@ -17,6 +17,9 @@ public class User {
     @Column(nullable = false, updatable = false)
     private Long id;
 
+    @Column(nullable = false, unique = true, updatable = false, length = 26)
+    private String uid;
+
     @Column(nullable = false)
     private String phoneNumber;
 
@@ -50,6 +53,7 @@ public class User {
 
     @Builder(access = AccessLevel.PRIVATE)
     private User(
+            String uid,
             String phoneNumber,
             String phoneNumberHash,
             String nickname,
@@ -59,6 +63,7 @@ public class User {
             String activityArea,
             UserRole role
     ) {
+        this.uid = uid;
         this.phoneNumber = phoneNumber;
         this.phoneNumberHash = phoneNumberHash;
         this.nickname = nickname;
@@ -70,6 +75,7 @@ public class User {
     }
 
     public static User of(
+            String uid,
             String phoneNumber,
             String phoneNumberHash,
             String nickname,
@@ -80,6 +86,7 @@ public class User {
             UserRole role
     ) {
         return User.builder()
+                .uid(uid)
                 .phoneNumber(phoneNumber)
                 .phoneNumberHash(phoneNumberHash)
                 .nickname(nickname)
