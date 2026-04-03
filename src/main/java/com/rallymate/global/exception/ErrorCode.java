@@ -20,6 +20,7 @@ public enum ErrorCode {
 
     // User (3xxx)
     USER_NOT_FOUND(3001, HttpStatus.NOT_FOUND, "유저를 찾을 수 없습니다."),
+    ALREADY_REGISTERED(3002, HttpStatus.BAD_REQUEST, "이미 등록된 유저입니다."),
 
     // Matching (4xxx)
     ALREADY_MATCHING(4001, HttpStatus.BAD_REQUEST, "이미 매칭 중입니다."),
