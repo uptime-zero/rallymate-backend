@@ -21,10 +21,10 @@ public class User {
     private String uid;
 
     @Column(nullable = false)
-    private String phoneNumber;
+    private String phoneEnc;
 
-    @Column(nullable = false)
-    private String phoneNumberHash;
+    @Column(nullable = false, unique = true)
+    private String phoneHash;
 
     @Column(nullable = false)
     private String nickname;
@@ -54,8 +54,8 @@ public class User {
     @Builder(access = AccessLevel.PRIVATE)
     private User(
             String uid,
-            String phoneNumber,
-            String phoneNumberHash,
+            String phoneEnc,
+            String phoneHash,
             String nickname,
             Gender gender,
             String profileUrl,
@@ -64,8 +64,8 @@ public class User {
             UserRole role
     ) {
         this.uid = uid;
-        this.phoneNumber = phoneNumber;
-        this.phoneNumberHash = phoneNumberHash;
+        this.phoneEnc = phoneEnc;
+        this.phoneHash = phoneHash;
         this.nickname = nickname;
         this.gender = gender;
         this.profileUrl = profileUrl;
@@ -76,8 +76,8 @@ public class User {
 
     public static User of(
             String uid,
-            String phoneNumber,
-            String phoneNumberHash,
+            String phoneEnc,
+            String phoneHash,
             String nickname,
             Gender gender,
             String profileUrl,
@@ -87,8 +87,8 @@ public class User {
     ) {
         return User.builder()
                 .uid(uid)
-                .phoneNumber(phoneNumber)
-                .phoneNumberHash(phoneNumberHash)
+                .phoneEnc(phoneEnc)
+                .phoneHash(phoneHash)
                 .nickname(nickname)
                 .gender(gender)
                 .profileUrl(profileUrl)
