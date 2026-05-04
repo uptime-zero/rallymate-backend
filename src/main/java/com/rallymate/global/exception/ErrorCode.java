@@ -26,6 +26,7 @@ public enum ErrorCode {
     ALREADY_MATCHING(4001, HttpStatus.BAD_REQUEST, "이미 매칭 중입니다."),
     MATCHING_SESSION_NOT_FOUND(4002, HttpStatus.NOT_FOUND, "매칭 세션을 찾을 수 없습니다."),
     MATCHING_UNAVAILABLE(4003, HttpStatus.FORBIDDEN, "패널티로 인해 매칭이 불가합니다."),
+    NOT_A_MATCH_PARTICIPANT(4004, HttpStatus.FORBIDDEN, "매칭 세션 참여자가 아닙니다."),
 
     // Common (8xxx)
     INVALID_REQUEST(8001, HttpStatus.BAD_REQUEST, "잘못된 요청입니다."),

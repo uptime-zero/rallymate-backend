@@ -42,3 +42,6 @@ out/
 ### Properties ###
 *.properties
 *.yml
+
+### test ###
+*.html
