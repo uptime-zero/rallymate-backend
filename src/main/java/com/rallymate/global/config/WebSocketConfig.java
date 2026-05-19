@@ -1,5 +1,6 @@
 package com.rallymate.global.config;
 
+import com.rallymate.chat.ws.ChatRoomChannelInterceptor;
 import com.rallymate.global.jwt.StompJwtChannelInterceptor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
@@ -22,6 +23,7 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private final StompJwtChannelInterceptor stompJwtChannelInterceptor;
+    private final ChatRoomChannelInterceptor chatRoomChannelInterceptor;
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
@@ -38,7 +40,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureClientInboundChannel(ChannelRegistration registration) {
-        registration.interceptors(stompJwtChannelInterceptor);
+        registration.interceptors(stompJwtChannelInterceptor, chatRoomChannelInterceptor);
     }
 }
 

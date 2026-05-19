@@ -3,6 +3,7 @@ package com.rallymate.matching.redis;
 import com.rallymate.matching.constant.MatchingRedisChannels;
 import com.rallymate.matching.event.MatchingJoinEvent;
 import com.rallymate.matching.event.MatchingMatchedEvent;
+import com.rallymate.matching.event.MatchSessionFinishedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -29,6 +30,15 @@ public class MatchingRedisPublisher {
             stringRedisTemplate.convertAndSend(MatchingRedisChannels.EVENTS, objectMapper.writeValueAsString(event));
         } catch (Exception e) {
             log.error("Failed to serialize MatchingJoinEvent", e);
+        }
+    }
+
+    public void publishFinished(Long sessionId, String uidA, String uidB, boolean cancelled) {
+        MatchSessionFinishedEvent event = new MatchSessionFinishedEvent(sessionId, uidA, uidB, cancelled);
+        try {
+            stringRedisTemplate.convertAndSend(MatchingRedisChannels.FINISHED, objectMapper.writeValueAsString(event));
+        } catch (Exception e) {
+            log.error("Failed to serialize MatchSessionFinishedEvent", e);
         }
     }
 
