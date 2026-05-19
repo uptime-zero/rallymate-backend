@@ -134,6 +134,10 @@ public class MatchingQueueRedisService {
         return Boolean.TRUE.equals(ok);
     }
 
+    public void unlockSport(String sport) {
+        stringRedisTemplate.delete(LOCK_KEY + sport);
+    }
+
     @Getter
     @RequiredArgsConstructor
     public static class WaitingUserSnapshot {

@@ -27,6 +27,12 @@ public enum ErrorCode {
     MATCHING_SESSION_NOT_FOUND(4002, HttpStatus.NOT_FOUND, "매칭 세션을 찾을 수 없습니다."),
     MATCHING_UNAVAILABLE(4003, HttpStatus.FORBIDDEN, "패널티로 인해 매칭이 불가합니다."),
     NOT_A_MATCH_PARTICIPANT(4004, HttpStatus.FORBIDDEN, "매칭 세션 참여자가 아닙니다."),
+    INVALID_MATCH_RESULT_COMBINATION(4005, HttpStatus.BAD_REQUEST, "결과 불일치로 양측 신고가 무효화되었습니다. 다시 신고해주세요."),
+
+    // Chat (5xxx)
+    CHAT_ROOM_NOT_FOUND(5001, HttpStatus.NOT_FOUND, "채팅방을 찾을 수 없습니다."),
+    NOT_A_CHAT_ROOM_PARTICIPANT(5002, HttpStatus.FORBIDDEN, "채팅방 참여자가 아닙니다."),
+    CHAT_ROOM_LOCKED(5003, HttpStatus.BAD_REQUEST, "채팅방이 잠겨 더 이상 메시지를 보낼 수 없습니다."),
 
     // Common (8xxx)
     INVALID_REQUEST(8001, HttpStatus.BAD_REQUEST, "잘못된 요청입니다."),

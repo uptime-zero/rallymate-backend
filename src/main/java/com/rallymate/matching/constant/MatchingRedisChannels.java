@@ -16,6 +16,12 @@ public final class MatchingRedisChannels {
      */
     public static final String MATCHED = "matching:matched";
 
+    /**
+     * 매칭 세션 결과 확정 브로드캐스트 (payload: JSON {@code MatchSessionFinishedEvent})
+     * <p>채팅방 LOCK 트리거로 사용됩니다.</p>
+     */
+    public static final String FINISHED = "matching:finished";
+
     private MatchingRedisChannels() {
     }
 }

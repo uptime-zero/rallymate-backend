@@ -11,6 +11,7 @@ import com.rallymate.matching.entity.MatchParticipantResult;
 import com.rallymate.matching.entity.MatchResult;
 import com.rallymate.matching.entity.MatchSession;
 import com.rallymate.matching.entity.MatchingPenalty;
+import com.rallymate.matching.event.MatchSessionFinishedEvent;
 import com.rallymate.matching.redis.MatchingQueueRedisService;
 import com.rallymate.matching.redis.MatchingQueueRedisService.WaitingUserSnapshot;
 import com.rallymate.matching.redis.MatchingRedisPublisher;
@@ -22,6 +23,7 @@ import com.rallymate.user.repository.UserRepository;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.messaging.simp.SimpMessageSendingOperations;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -58,6 +60,7 @@ public class MatchingService {
     private final SimpMessageSendingOperations messagingTemplate;
     private final MatchingQueueRedisService queueRedis;
     private final MatchingRedisPublisher matchingRedisPublisher;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * 매칭 시작 요청을 처리합니다.
@@ -108,78 +111,82 @@ public class MatchingService {
         if (!queueRedis.tryLockSport(sport)) {
             return;
         }
+        try {
 
-        WaitingUserSnapshot anchor = queueRedis.loadUser(anchorUid);
-        if (anchor == null) {
-            return;
-        }
-
-        List<String> uidList = queueRedis.listWaitingUidsOrdered(sport);
-        List<WaitingUserSnapshot> candidates = new ArrayList<>();
-        for (String u : uidList) {
-            WaitingUserSnapshot snap = queueRedis.loadUser(u);
-            if (snap != null) {
-                candidates.add(snap);
+            WaitingUserSnapshot anchor = queueRedis.loadUser(anchorUid);
+            if (anchor == null) {
+                return;
             }
-        }
 
-        candidates.removeIf(w -> w.getUid().equals(anchor.getUid()));
-        candidates.removeIf(w -> !w.getSport().equals(anchor.getSport()));
-
-        if (candidates.isEmpty()) {
-            return;
-        }
-
-        LocalDateTime now = LocalDateTime.now();
-        int newStage = calculateStage(anchor.getWaitingSince(), now);
-
-        List<WaitingUserSnapshot> filtered = new ArrayList<>();
-        for (WaitingUserSnapshot other : candidates) {
-            int otherStage = calculateStage(other.getWaitingSince(), now);
-            int stage = Math.max(newStage, otherStage);
-            int ratingTolerance = getRatingTolerance(stage);
-            double radiusKm = getRadiusKm(stage);
-
-            int ratingDiff = Math.abs(anchor.getRating() - other.getRating());
-            double distanceKm = distanceInKm(
-                    anchor.getLatitude(), anchor.getLongitude(),
-                    other.getLatitude(), other.getLongitude()
-            );
-
-            if (ratingDiff <= ratingTolerance && distanceKm <= radiusKm) {
-                filtered.add(other);
+            List<String> uidList = queueRedis.listWaitingUidsOrdered(sport);
+            List<WaitingUserSnapshot> candidates = new ArrayList<>();
+            for (String u : uidList) {
+                WaitingUserSnapshot snap = queueRedis.loadUser(u);
+                if (snap != null) {
+                    candidates.add(snap);
+                }
             }
-        }
 
-        if (filtered.isEmpty()) {
-            return;
-        }
+            candidates.removeIf(w -> w.getUid().equals(anchor.getUid()));
+            candidates.removeIf(w -> !w.getSport().equals(anchor.getSport()));
 
-        filtered.sort(Comparator
-                .comparingInt((WaitingUserSnapshot w) -> Math.abs(anchor.getRating() - w.getRating()))
-                .thenComparingDouble(w -> distanceInKm(
+            if (candidates.isEmpty()) {
+                return;
+            }
+
+            LocalDateTime now = LocalDateTime.now();
+            int newStage = calculateStage(anchor.getWaitingSince(), now);
+
+            List<WaitingUserSnapshot> filtered = new ArrayList<>();
+            for (WaitingUserSnapshot other : candidates) {
+                int otherStage = calculateStage(other.getWaitingSince(), now);
+                int stage = Math.max(newStage, otherStage);
+                int ratingTolerance = getRatingTolerance(stage);
+                double radiusKm = getRadiusKm(stage);
+
+                int ratingDiff = Math.abs(anchor.getRating() - other.getRating());
+                double distanceKm = distanceInKm(
                         anchor.getLatitude(), anchor.getLongitude(),
-                        w.getLatitude(), w.getLongitude()))
-                .thenComparing(WaitingUserSnapshot::getWaitingSince));
+                        other.getLatitude(), other.getLongitude()
+                );
 
-        WaitingUserSnapshot opponent = filtered.getFirst();
+                if (ratingDiff <= ratingTolerance && distanceKm <= radiusKm) {
+                    filtered.add(other);
+                }
+            }
 
-        LocalDateTime expiresAt = now.plusMinutes(2);
-        int finalStage = Math.max(newStage, calculateStage(opponent.getWaitingSince(), now));
+            if (filtered.isEmpty()) {
+                return;
+            }
 
-        MatchSession session = MatchSession.of(
-                anchor.getSport(),
-                finalStage,
-                anchor.getUid(),
-                opponent.getUid(),
-                now,
-                expiresAt
-        );
-        matchSessionRepository.save(session);
+            filtered.sort(Comparator
+                    .comparingInt((WaitingUserSnapshot w) -> Math.abs(anchor.getRating() - w.getRating()))
+                    .thenComparingDouble(w -> distanceInKm(
+                            anchor.getLatitude(), anchor.getLongitude(),
+                            w.getLatitude(), w.getLongitude()))
+                    .thenComparing(WaitingUserSnapshot::getWaitingSince));
 
-        queueRedis.removePair(sport, anchor.getUid(), opponent.getUid());
+            WaitingUserSnapshot opponent = filtered.getFirst();
 
-        matchingRedisPublisher.publishMatched(session.getId(), anchor.getUid(), opponent.getUid());
+            LocalDateTime expiresAt = now.plusMinutes(2);
+            int finalStage = Math.max(newStage, calculateStage(opponent.getWaitingSince(), now));
+
+            MatchSession session = MatchSession.of(
+                    anchor.getSport(),
+                    finalStage,
+                    anchor.getUid(),
+                    opponent.getUid(),
+                    now,
+                    expiresAt
+            );
+            matchSessionRepository.save(session);
+
+            queueRedis.removePair(sport, anchor.getUid(), opponent.getUid());
+
+            matchingRedisPublisher.publishMatched(session.getId(), anchor.getUid(), opponent.getUid());
+        } finally {
+            queueRedis.unlockSport(sport);
+        }
     }
 
     /**
@@ -261,20 +268,29 @@ public class MatchingService {
         if (existing.size() == 2) {
             MatchParticipantResult r1 = existing.get(0);
             MatchParticipantResult r2 = existing.get(1);
-            if (r1.getResult() == MatchResult.WIN && r2.getResult() == MatchResult.WIN) {
-                throw new BadRequestException(INVALID_REQUEST, "두 참가자 모두 WIN을 제출했습니다.");
-            }
-            if (r1.getResult() == MatchResult.LOSE && r2.getResult() == MatchResult.LOSE) {
-                throw new BadRequestException(INVALID_REQUEST, "두 참가자 모두 LOSE를 제출했습니다.");
+
+            if (!isConsistentResults(r1.getResult(), r2.getResult())) {
+                resultRepository.deleteAll(existing);
+                throw new BadRequestException(INVALID_MATCH_RESULT_COMBINATION);
             }
 
+            boolean cancelled = r1.getResult() == MatchResult.CANCEL;
             session.markFinished();
             matchSessionRepository.save(session);
+
+            eventPublisher.publishEvent(
+                    new MatchSessionFinishedEvent(session.getId(), r1.getUid(), r2.getUid(), cancelled));
 
             // 양쪽에 완료 알림
             sendToUser(r1.getUid(), "/queue/match/finished", ApiResponse.ok(session.getId()));
             sendToUser(r2.getUid(), "/queue/match/finished", ApiResponse.ok(session.getId()));
         }
+    }
+
+    private boolean isConsistentResults(MatchResult r1, MatchResult r2) {
+        if (r1 == MatchResult.WIN) return r2 == MatchResult.LOSE;
+        if (r1 == MatchResult.LOSE) return r2 == MatchResult.WIN;
+        return r1 == r2; // DRAW+DRAW, CANCEL+CANCEL
     }
 
     private void handleReject(String uid, MatchSession session, LocalDateTime now) {

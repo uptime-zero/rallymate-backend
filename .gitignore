@@ -45,3 +45,7 @@ out/
 
 ### test ###
 *.html
+*.http
+
+### claude ###
+claude.md
